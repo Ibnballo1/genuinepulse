@@ -22,7 +22,7 @@ export const GET = withErrorHandling(
     const customer = await db.query.customers.findFirst({
       where: and(
         eq(customers.id, params.id),
-        eq(customers.businessId, businessId)
+        eq(customers.businessId, businessId),
       ),
       with: {
         reviewRequests: {
@@ -37,11 +37,14 @@ export const GET = withErrorHandling(
     });
 
     if (!customer) {
-      return NextResponse.json({ error: "Customer not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Customer not found" },
+        { status: 404 },
+      );
     }
 
     return apiSuccess(customer);
-  }
+  },
 );
 
 export const PATCH = withErrorHandling(
@@ -52,12 +55,15 @@ export const PATCH = withErrorHandling(
     const existing = await db.query.customers.findFirst({
       where: and(
         eq(customers.id, params.id),
-        eq(customers.businessId, businessId)
+        eq(customers.businessId, businessId),
       ),
     });
 
     if (!existing) {
-      return NextResponse.json({ error: "Customer not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Customer not found" },
+        { status: 404 },
+      );
     }
 
     const [updated] = await db
@@ -71,6 +77,7 @@ export const PATCH = withErrorHandling(
       .returning();
 
     await db.insert(auditLogs).values({
+      id: crypto.randomUUID(),
       userId: user.id,
       businessId,
       action: "update",
@@ -80,7 +87,7 @@ export const PATCH = withErrorHandling(
     });
 
     return apiSuccess(updated);
-  }
+  },
 );
 
 export const DELETE = withErrorHandling(
@@ -90,27 +97,31 @@ export const DELETE = withErrorHandling(
     const existing = await db.query.customers.findFirst({
       where: and(
         eq(customers.id, params.id),
-        eq(customers.businessId, businessId)
+        eq(customers.businessId, businessId),
       ),
     });
 
     if (!existing) {
-      return NextResponse.json({ error: "Customer not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Customer not found" },
+        { status: 404 },
+      );
     }
 
-    await db
-      .delete(customers)
-      .where(eq(customers.id, params.id));
+    await db.delete(customers).where(eq(customers.id, params.id));
 
     await db.insert(auditLogs).values({
+      id: crypto.randomUUID(),
       userId: user.id,
       businessId,
       action: "delete",
       resourceType: "customer",
       resourceId: params.id,
-      metadata: { name: `${existing.firstName} ${existing.lastName ?? ""}`.trim() },
+      metadata: {
+        name: `${existing.firstName} ${existing.lastName ?? ""}`.trim(),
+      },
     });
 
     return NextResponse.json({ success: true });
-  }
+  },
 );

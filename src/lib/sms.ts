@@ -22,11 +22,11 @@ function getTwilioClient() {
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface SendSmsParams {
-  to: string;           // E.164 format: +15551234567
+  to: string; // E.164 format: +15551234567
   body: string;
   businessId: string;
   reviewRequestId?: string;
-  fromNumber?: string;  // override default
+  fromNumber?: string; // override default
   attemptNumber?: number;
 }
 
@@ -57,7 +57,13 @@ export function normalizePhone(phone: string): string | null {
 
 // ─── Validate US phone opt-out keywords ──────────────────────────────────────
 
-export const SMS_OPT_OUT_KEYWORDS = ["stop", "unsubscribe", "cancel", "quit", "end"];
+export const SMS_OPT_OUT_KEYWORDS = [
+  "stop",
+  "unsubscribe",
+  "cancel",
+  "quit",
+  "end",
+];
 
 export function isOptOutMessage(body: string): boolean {
   return SMS_OPT_OUT_KEYWORDS.includes(body.trim().toLowerCase());
@@ -90,7 +96,11 @@ export async function sendSms(params: SendSmsParams): Promise<SmsResult> {
       attemptNumber,
       isRetry: attemptNumber > 1,
     });
-    return { success: false, error: "Invalid phone number format", errorCode: "INVALID_PHONE" };
+    return {
+      success: false,
+      error: "Invalid phone number format",
+      errorCode: "INVALID_PHONE",
+    };
   }
 
   const fromNum = fromNumber ?? process.env.TWILIO_FROM_NUMBER;
@@ -182,7 +192,7 @@ export async function sendSms(params: SendSmsParams): Promise<SmsResult> {
 
 export async function sendSmsWithRetry(
   params: SendSmsParams,
-  maxAttempts = 3
+  maxAttempts = 3,
 ): Promise<SmsResult> {
   const delays = [0, 30_000, 120_000]; // 0s, 30s, 2min
 
@@ -229,7 +239,7 @@ export function personalizeSmsTemplate(
     business_name?: string;
     review_link?: string;
     [key: string]: string | undefined;
-  }
+  },
 ): string {
   return template.replace(/\{\{(\w+)\}\}/g, (match, key) => vars[key] ?? match);
 }
@@ -257,6 +267,7 @@ async function logMessage(data: {
   isRetry?: boolean;
 }) {
   return db.insert(messageLogs).values({
+    id: crypto.randomUUID(),
     businessId: data.businessId,
     reviewRequestId: data.reviewRequestId,
     channel: data.channel,

@@ -36,8 +36,8 @@ export const GET = withErrorHandling(async (req: NextRequest) => {
         ilike(customers.firstName, `%${search}%`),
         ilike(customers.lastName, `%${search}%`),
         ilike(customers.email, `%${search}%`),
-        ilike(customers.phone, `%${search}%`)
-      )!
+        ilike(customers.phone, `%${search}%`),
+      )!,
     );
   }
 
@@ -78,6 +78,7 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
   const [created] = await db
     .insert(customers)
     .values({
+      id: crypto.randomUUID(),
       businessId,
       firstName: body.firstName,
       lastName: body.lastName,
@@ -90,6 +91,7 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
 
   // Audit log
   await db.insert(auditLogs).values({
+    id: crypto.randomUUID(),
     userId: user.id,
     businessId,
     action: "create",

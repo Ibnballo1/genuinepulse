@@ -15,13 +15,8 @@
 //         → Notify business owner
 
 import { db } from "@/db";
-import {
-  feedback,
-  reviewRequests,
-  customers,
-  businesses,
-} from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { feedback, reviewRequests, customers, businesses } from "@/db/schema";
+import { eq, and, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -47,7 +42,12 @@ export interface FunnelFeedbackPayload {
 }
 
 export interface FunnelResult {
-  action: "redirect_public" | "show_feedback_form" | "already_submitted" | "expired" | "invalid";
+  action:
+    | "redirect_public"
+    | "show_feedback_form"
+    | "already_submitted"
+    | "expired"
+    | "invalid";
   redirectUrl?: string;
   reviewRequestId?: string;
   businessName?: string;
@@ -72,7 +72,7 @@ export async function resolveFunnelToken(token: string) {
 // Called when customer submits a star rating
 
 export async function handleRating(
-  payload: FunnelRatingPayload
+  payload: FunnelRatingPayload,
 ): Promise<FunnelResult> {
   const { token, rating, ipAddress, userAgent } = payload;
 
@@ -115,6 +115,7 @@ export async function handleRating(
     const redirectUrl = pickReviewPlatformUrl(request.business);
 
     await db.insert(feedback).values({
+      id: crypto.randomUUID(),
       businessId: request.businessId,
       customerId: request.customerId,
       reviewRequestId: request.id,
@@ -131,7 +132,7 @@ export async function handleRating(
     await db
       .update(customers)
       .set({
-        totalReviewsLeft: db.raw(`total_reviews_left + 1`),
+        totalReviewsLeft: sql`total_reviews_left + 1`,
         lastRating: rating,
       })
       .where(eq(customers.id, request.customerId));
@@ -149,6 +150,7 @@ export async function handleRating(
     const [inserted] = await db
       .insert(feedback)
       .values({
+        id: crypto.randomUUID(),
         businessId: request.businessId,
         customerId: request.customerId,
         reviewRequestId: request.id,
@@ -180,7 +182,7 @@ export async function handleRating(
 
 export async function handlePrivateFeedback(
   feedbackId: string,
-  message: string
+  message: string,
 ): Promise<{ success: boolean }> {
   if (!message?.trim()) {
     return { success: false };

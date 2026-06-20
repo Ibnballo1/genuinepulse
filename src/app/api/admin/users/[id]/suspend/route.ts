@@ -16,20 +16,35 @@ export const POST = withErrorHandling(
     const parsed = suspendUserSchema.safeParse({ userId: params.id, ...body });
 
     if (!parsed.success) {
-      return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten() }, { status: 422 });
+      return NextResponse.json(
+        { error: "Validation failed", details: parsed.error.flatten() },
+        { status: 422 },
+      );
     }
 
-    const target = await db.query.users.findFirst({ where: eq(users.id, params.id) });
-    if (!target) return NextResponse.json({ error: "User not found" }, { status: 404 });
-    if (target.role === "super_admin") return NextResponse.json({ error: "Cannot suspend another super admin" }, { status: 403 });
+    const target = await db.query.users.findFirst({
+      where: eq(users.id, params.id),
+    });
+    if (!target)
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    if (target.role === "super_admin")
+      return NextResponse.json(
+        { error: "Cannot suspend another super admin" },
+        { status: 403 },
+      );
 
     const [updated] = await db
       .update(users)
-      .set({ isSuspended: true, suspendedAt: new Date(), suspendedReason: parsed.data.reason })
+      .set({
+        isSuspended: true,
+        suspendedAt: new Date(),
+        suspendedReason: parsed.data.reason,
+      })
       .where(eq(users.id, params.id))
       .returning();
 
     await db.insert(auditLogs).values({
+      id: crypto.randomUUID(),
       userId: admin.id,
       action: "suspend_account",
       resourceType: "user",
@@ -38,7 +53,7 @@ export const POST = withErrorHandling(
     });
 
     return apiSuccess(updated);
-  }
+  },
 );
 
 export const DELETE = withErrorHandling(
@@ -52,6 +67,7 @@ export const DELETE = withErrorHandling(
       .returning();
 
     await db.insert(auditLogs).values({
+      id: crypto.randomUUID(),
       userId: admin.id,
       action: "update",
       resourceType: "user",
@@ -60,5 +76,5 @@ export const DELETE = withErrorHandling(
     });
 
     return apiSuccess(updated);
-  }
+  },
 );

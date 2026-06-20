@@ -9,8 +9,8 @@ import { requireSuperAdmin, withErrorHandling, apiSuccess } from "@/lib/api";
 import { updatePlanSchema } from "@/lib/validations";
 
 const PLAN_DEFAULTS = {
-  starter:    { monthlySmsLimit: 500,   monthlyEmailLimit: 2_000  },
-  pro:        { monthlySmsLimit: 2_500,  monthlyEmailLimit: 10_000 },
+  starter: { monthlySmsLimit: 500, monthlyEmailLimit: 2_000 },
+  pro: { monthlySmsLimit: 2_500, monthlyEmailLimit: 10_000 },
   enterprise: { monthlySmsLimit: 20_000, monthlyEmailLimit: 100_000 },
 };
 
@@ -18,10 +18,16 @@ export const PATCH = withErrorHandling(
   async (req: NextRequest, { params }: { params: { id: string } }) => {
     const admin = await requireSuperAdmin(req);
     const body = await req.json();
-    const parsed = updatePlanSchema.safeParse({ businessId: params.id, ...body });
+    const parsed = updatePlanSchema.safeParse({
+      businessId: params.id,
+      ...body,
+    });
 
     if (!parsed.success) {
-      return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten() }, { status: 422 });
+      return NextResponse.json(
+        { error: "Validation failed", details: parsed.error.flatten() },
+        { status: 422 },
+      );
     }
 
     const defaults = PLAN_DEFAULTS[parsed.data.plan];
@@ -31,14 +37,17 @@ export const PATCH = withErrorHandling(
       .set({
         plan: parsed.data.plan,
         status: "active",
-        monthlySmsLimit: parsed.data.monthlySmsLimit ?? defaults.monthlySmsLimit,
-        monthlyEmailLimit: parsed.data.monthlyEmailLimit ?? defaults.monthlyEmailLimit,
+        monthlySmsLimit:
+          parsed.data.monthlySmsLimit ?? defaults.monthlySmsLimit,
+        monthlyEmailLimit:
+          parsed.data.monthlyEmailLimit ?? defaults.monthlyEmailLimit,
         updatedAt: new Date(),
       })
       .where(eq(subscriptions.businessId, params.id))
       .returning();
 
     await db.insert(auditLogs).values({
+      id: crypto.randomUUID(),
       userId: admin.id,
       action: "update",
       resourceType: "subscription",
@@ -47,5 +56,5 @@ export const PATCH = withErrorHandling(
     });
 
     return apiSuccess(updated);
-  }
+  },
 );
