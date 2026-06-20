@@ -15,12 +15,15 @@ export default function ForgotPasswordPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!email) { setError("Email is required."); return; }
+    if (!email) {
+      setError("Email is required.");
+      return;
+    }
     setLoading(true);
     setError("");
 
     try {
-      await authClient.forgetPassword({
+      await authClient.requestPasswordReset({
         email: email.trim().toLowerCase(),
         redirectTo: "/reset-password",
       });
@@ -39,15 +42,21 @@ export default function ForgotPasswordPage() {
           <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center">
             <Zap size={18} className="text-white" />
           </div>
-          <span className="text-xl font-semibold text-gray-900 tracking-tight">GenuinePulse</span>
+          <span className="text-xl font-semibold text-gray-900 tracking-tight">
+            GenuinePulse
+          </span>
         </div>
 
         <div className="bg-white rounded-2xl border border-gray-200 shadow-xl p-8">
           {!sent ? (
             <>
               <div className="mb-6">
-                <h1 className="text-2xl font-semibold text-gray-900 tracking-tight">Reset your password</h1>
-                <p className="text-sm text-gray-500 mt-1">We'll send a reset link to your email.</p>
+                <h1 className="text-2xl font-semibold text-gray-900 tracking-tight">
+                  Reset your password
+                </h1>
+                <p className="text-sm text-gray-500 mt-1">
+                  We'll send a reset link to your email.
+                </p>
               </div>
 
               {error && (
@@ -66,7 +75,12 @@ export default function ForgotPasswordPage() {
                   placeholder="you@yourbusiness.com"
                   autoFocus
                 />
-                <Button type="submit" className="w-full" size="lg" loading={loading}>
+                <Button
+                  type="submit"
+                  className="w-full"
+                  size="lg"
+                  loading={loading}
+                >
                   Send reset link
                 </Button>
               </form>
@@ -76,17 +90,22 @@ export default function ForgotPasswordPage() {
               <div className="w-14 h-14 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CheckCircle size={28} className="text-emerald-500" />
               </div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-2">Check your email</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-2">
+                Check your email
+              </h2>
               <p className="text-sm text-gray-500 leading-relaxed">
-                We sent a password reset link to <strong>{email}</strong>.
-                It expires in 1 hour.
+                We sent a password reset link to <strong>{email}</strong>. It
+                expires in 1 hour.
               </p>
             </div>
           )}
 
           <p className="text-center text-sm text-gray-500 mt-6">
             Remember it?{" "}
-            <Link href="/sign-in" className="text-blue-600 hover:text-blue-700 font-medium">
+            <Link
+              href="/sign-in"
+              className="text-blue-600 hover:text-blue-700 font-medium"
+            >
               Sign in
             </Link>
           </p>
