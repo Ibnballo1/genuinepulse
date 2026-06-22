@@ -15,6 +15,8 @@ import { eq, sql, count, gte, desc } from "drizzle-orm";
 import { requireSuperAdmin, withErrorHandling } from "@/lib/api";
 import { subDays } from "date-fns";
 
+export const runtime = "nodejs";
+
 export const GET = withErrorHandling(async (req: NextRequest) => {
   await requireSuperAdmin(req);
 

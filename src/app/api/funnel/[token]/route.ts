@@ -6,16 +6,20 @@ import { db } from "@/db";
 import { reviewRequests } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
+export const runtime = "nodejs";
+
 export async function GET(
   req: NextRequest,
-  { params }: { params: { token: string } }
+  { params }: { params: { token: string } },
 ) {
   const request = await db.query.reviewRequests.findFirst({
     where: eq(reviewRequests.token, params.token),
     with: {
       business: {
         columns: {
-          id: true, name: true, logoUrl: true,
+          id: true,
+          name: true,
+          logoUrl: true,
           positiveThreshold: true,
           googleReviewUrl: true,
         },

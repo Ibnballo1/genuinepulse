@@ -4,9 +4,22 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { businesses, subscriptions, users, reviewRequests, feedback } from "@/db/schema";
+import {
+  businesses,
+  subscriptions,
+  users,
+  reviewRequests,
+  feedback,
+} from "@/db/schema";
 import { eq, desc, count, sql, ilike, and } from "drizzle-orm";
-import { requireSuperAdmin, withErrorHandling, paginatedResponse, getPaginationParams } from "@/lib/api";
+import {
+  requireSuperAdmin,
+  withErrorHandling,
+  paginatedResponse,
+  getPaginationParams,
+} from "@/lib/api";
+
+export const runtime = "nodejs";
 
 export const GET = withErrorHandling(async (req: NextRequest) => {
   await requireSuperAdmin(req);
@@ -22,7 +35,10 @@ export const GET = withErrorHandling(async (req: NextRequest) => {
 
   const where = conditions.length ? and(...conditions) : undefined;
 
-  const [{ total }] = await db.select({ total: count() }).from(businesses).where(where);
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(businesses)
+    .where(where);
 
   const rows = await db.execute(sql`
     SELECT
@@ -41,7 +57,7 @@ export const GET = withErrorHandling(async (req: NextRequest) => {
     LEFT JOIN customers c ON c.business_id = b.id
     LEFT JOIN review_requests rr ON rr.business_id = b.id
     LEFT JOIN feedback f ON f.business_id = b.id
-    WHERE ${search ? sql`b.name ILIKE ${'%' + search + '%'}` : sql`TRUE`}
+    WHERE ${search ? sql`b.name ILIKE ${"%" + search + "%"}` : sql`TRUE`}
     ${plan ? sql`AND s.plan = ${plan}` : sql``}
     GROUP BY b.id, s.plan, s.status, s.monthly_sms_limit, s.monthly_email_limit,
              s.sms_sent_this_period, s.email_sent_this_period
@@ -49,5 +65,5 @@ export const GET = withErrorHandling(async (req: NextRequest) => {
     LIMIT ${limit} OFFSET ${offset}
   `);
 
-  return paginatedResponse(rows.rows, Number(total), page, limit);
+  return paginatedResponse(rows, Number(total), page, limit);
 });

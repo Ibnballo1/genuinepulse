@@ -7,9 +7,14 @@ import { db } from "@/db";
 import { messageTemplates } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import {
-  getBusinessContext, withErrorHandling, validateBody, apiSuccess,
+  getBusinessContext,
+  withErrorHandling,
+  validateBody,
+  apiSuccess,
 } from "@/lib/api";
 import { createTemplateSchema } from "@/lib/validations";
+
+export const runtime = "nodejs";
 
 export const PATCH = withErrorHandling(
   async (req: NextRequest, { params }: { params: { id: string } }) => {
@@ -19,12 +24,15 @@ export const PATCH = withErrorHandling(
     const existing = await db.query.messageTemplates.findFirst({
       where: and(
         eq(messageTemplates.id, params.id),
-        eq(messageTemplates.businessId, businessId)
+        eq(messageTemplates.businessId, businessId),
       ),
     });
 
     if (!existing) {
-      return NextResponse.json({ error: "Template not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Template not found" },
+        { status: 404 },
+      );
     }
 
     const [updated] = await db
@@ -34,7 +42,7 @@ export const PATCH = withErrorHandling(
       .returning();
 
     return apiSuccess(updated);
-  }
+  },
 );
 
 export const DELETE = withErrorHandling(
@@ -44,18 +52,24 @@ export const DELETE = withErrorHandling(
     const existing = await db.query.messageTemplates.findFirst({
       where: and(
         eq(messageTemplates.id, params.id),
-        eq(messageTemplates.businessId, businessId)
+        eq(messageTemplates.businessId, businessId),
       ),
     });
 
     if (!existing) {
-      return NextResponse.json({ error: "Template not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Template not found" },
+        { status: 404 },
+      );
     }
 
     if (existing.isDefault) {
       return NextResponse.json(
-        { error: "Cannot delete the default template. Set another as default first." },
-        { status: 422 }
+        {
+          error:
+            "Cannot delete the default template. Set another as default first.",
+        },
+        { status: 422 },
       );
     }
 
@@ -66,5 +80,5 @@ export const DELETE = withErrorHandling(
       .where(eq(messageTemplates.id, params.id));
 
     return NextResponse.json({ success: true });
-  }
+  },
 );

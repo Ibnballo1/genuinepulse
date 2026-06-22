@@ -13,6 +13,8 @@ import {
 } from "@/lib/api";
 import { count } from "drizzle-orm";
 
+export const runtime = "nodejs";
+
 export const GET = withErrorHandling(async (req: NextRequest) => {
   await requireSuperAdmin(req);
   const { searchParams } = new URL(req.url);

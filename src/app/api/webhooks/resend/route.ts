@@ -7,6 +7,8 @@ import { reviewRequests, messageLogs } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import crypto from "crypto";
 
+export const runtime = "nodejs";
+
 export async function POST(req: NextRequest) {
   // ─── Verify Resend webhook signature ──────────────────────────────────
   const svix_id = req.headers.get("svix-id");
@@ -29,7 +31,9 @@ export async function POST(req: NextRequest) {
       .update(toSign)
       .digest("base64");
 
-    const signatures = svix_signature.split(" ").map((s) => s.replace("v1,", ""));
+    const signatures = svix_signature
+      .split(" ")
+      .map((s) => s.replace("v1,", ""));
     const isValid = signatures.some((sig) => sig === computed);
     if (!isValid) {
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
@@ -97,7 +101,8 @@ export async function POST(req: NextRequest) {
         .update(reviewRequests)
         .set({
           status: "bounced",
-          failureReason: type === "email.bounced" ? "Email bounced" : "Spam complaint",
+          failureReason:
+            type === "email.bounced" ? "Email bounced" : "Spam complaint",
         })
         .where(eq(reviewRequests.resendId, emailId));
       break;

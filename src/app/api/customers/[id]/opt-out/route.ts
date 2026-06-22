@@ -8,16 +8,22 @@ import { customers } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { getBusinessContext, withErrorHandling, apiSuccess } from "@/lib/api";
 
+export const runtime = "nodejs";
+
 export const POST = withErrorHandling(
   async (req: NextRequest, { params }: { params: { id: string } }) => {
     const { businessId } = await getBusinessContext(req);
     const body = await req.json().catch(() => ({}));
 
     const existing = await db.query.customers.findFirst({
-      where: and(eq(customers.id, params.id), eq(customers.businessId, businessId)),
+      where: and(
+        eq(customers.id, params.id),
+        eq(customers.businessId, businessId),
+      ),
     });
 
-    if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (!existing)
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     const [updated] = await db
       .update(customers)
@@ -30,7 +36,7 @@ export const POST = withErrorHandling(
       .returning();
 
     return apiSuccess(updated);
-  }
+  },
 );
 
 export const DELETE = withErrorHandling(
@@ -38,10 +44,14 @@ export const DELETE = withErrorHandling(
     const { businessId } = await getBusinessContext(req);
 
     const existing = await db.query.customers.findFirst({
-      where: and(eq(customers.id, params.id), eq(customers.businessId, businessId)),
+      where: and(
+        eq(customers.id, params.id),
+        eq(customers.businessId, businessId),
+      ),
     });
 
-    if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (!existing)
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     const [updated] = await db
       .update(customers)
@@ -50,5 +60,5 @@ export const DELETE = withErrorHandling(
       .returning();
 
     return apiSuccess(updated);
-  }
+  },
 );

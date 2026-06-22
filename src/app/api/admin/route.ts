@@ -15,6 +15,8 @@ import { eq, sql, count, gte, desc } from "drizzle-orm";
 import { requireSuperAdmin, withErrorHandling } from "@/lib/api";
 import { subDays } from "date-fns";
 
+export const runtime = "nodejs";
+
 export const GET = withErrorHandling(async (req: NextRequest) => {
   await requireSuperAdmin(req);
 
@@ -126,12 +128,12 @@ export const GET = withErrorHandling(async (req: NextRequest) => {
         activeBusinesses: Number(activeBusinesses[0]?.count ?? 0),
         totalRequestsSent30d: Number(totalRequests[0]?.count ?? 0),
         totalReviews30d: Number(totalReviews[0]?.count ?? 0),
-        mrr: Number((systemRevenue.rows[0] as any)?.mrr ?? 0),
+        mrr: Number((systemRevenue[0] as any)?.mrr ?? 0),
       },
       planBreakdown,
       planRevenue,
       recentFailedMessages,
-      topBusinesses: topBusinesses.rows,
+      topBusinesses: topBusinesses,
     },
   });
 });

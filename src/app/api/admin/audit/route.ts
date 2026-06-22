@@ -6,11 +6,15 @@ import { db } from "@/db";
 import { auditLogs, users, businesses } from "@/db/schema";
 import { eq, desc, and, gte } from "drizzle-orm";
 import {
-  requireSuperAdmin, withErrorHandling,
-  getPaginationParams, paginatedResponse,
+  requireSuperAdmin,
+  withErrorHandling,
+  getPaginationParams,
+  paginatedResponse,
 } from "@/lib/api";
 import { count } from "drizzle-orm";
 import { subDays } from "date-fns";
+
+export const runtime = "nodejs";
 
 export const GET = withErrorHandling(async (req: NextRequest) => {
   await requireSuperAdmin(req);
@@ -19,12 +23,17 @@ export const GET = withErrorHandling(async (req: NextRequest) => {
   const action = searchParams.get("action");
   const days = parseInt(searchParams.get("days") ?? "30");
 
-  const conditions: any[] = [gte(auditLogs.createdAt, subDays(new Date(), days))];
+  const conditions: any[] = [
+    gte(auditLogs.createdAt, subDays(new Date(), days)),
+  ];
   if (action) conditions.push(eq(auditLogs.action, action as any));
 
   const where = and(...conditions);
 
-  const [{ total }] = await db.select({ total: count() }).from(auditLogs).where(where);
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(auditLogs)
+    .where(where);
 
   const rows = await db
     .select({

@@ -12,6 +12,8 @@ import {
   rateLimitResponse,
 } from "@/lib/rate-limit";
 
+export const runtime = "nodejs";
+
 export const POST = withErrorHandling(async (req: NextRequest) => {
   const ip = getClientIp(req);
 

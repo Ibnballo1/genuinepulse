@@ -8,6 +8,8 @@ import { eq, and } from "drizzle-orm";
 import { getBusinessContext, withErrorHandling } from "@/lib/api";
 import { csvCustomerRowSchema } from "@/lib/validations";
 
+export const runtime = "nodejs";
+
 export const POST = withErrorHandling(async (req: NextRequest) => {
   const { user, businessId } = await getBusinessContext(req);
 
@@ -23,20 +25,29 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
   }
 
   if (file.size > 5 * 1024 * 1024) {
-    return NextResponse.json({ error: "File too large (max 5MB)" }, { status: 400 });
+    return NextResponse.json(
+      { error: "File too large (max 5MB)" },
+      { status: 400 },
+    );
   }
 
   const text = await file.text();
   const lines = text.split(/\r?\n/).filter(Boolean);
 
   if (lines.length < 2) {
-    return NextResponse.json({ error: "CSV must have a header and at least one row" }, { status: 400 });
+    return NextResponse.json(
+      { error: "CSV must have a header and at least one row" },
+      { status: 400 },
+    );
   }
 
   // Parse header (case-insensitive)
-  const headers = lines[0]
-    .split(",")
-    .map((h) => h.trim().toLowerCase().replace(/[^a-z_]/g, "_"));
+  const headers = lines[0].split(",").map((h) =>
+    h
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z_]/g, "_"),
+  );
 
   const results = {
     imported: 0,
@@ -73,6 +84,7 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
     const { first_name, last_name, email, phone } = parsed.data;
 
     toInsert.push({
+      id: crypto.randomUUID(),
       businessId,
       firstName: first_name,
       lastName: last_name || undefined,
@@ -87,10 +99,7 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
     const BATCH_SIZE = 100;
     for (let i = 0; i < toInsert.length; i += BATCH_SIZE) {
       const batch = toInsert.slice(i, i + BATCH_SIZE);
-      await db
-        .insert(customers)
-        .values(batch)
-        .onConflictDoNothing(); // skip duplicate emails per business
+      await db.insert(customers).values(batch).onConflictDoNothing(); // skip duplicate emails per business
     }
     results.imported = toInsert.length;
   }

@@ -44,19 +44,15 @@ export async function sendEmail(params: SendEmailParams): Promise<EmailResult> {
   } = params;
 
   // const from = `${fromName} <${fromEmail}>`;
-  // 🛠️ Ensure the format matches: "Name <email@domain.com>" or "email@domain.com"
-  const computedFromName = fromName?.trim() || "GenuinePulse Feedback";
-
-  // Clean fallback if the custom business domain profile email isn't set up yet
-  const computedFromAddress = fromEmail?.includes("@")
-    ? fromEmail.trim()
-    : process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev"; // Resend testing sandbox fallback
-
-  const formattedFromField = `${computedFromName} <${computedFromAddress}>`;
+  const resolvedEmail =
+    fromEmail ?? process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev";
+  const resolvedName =
+    fromName ?? process.env.RESEND_FROM_NAME ?? "GenuinePulse";
+  const from = `${resolvedName} <${resolvedEmail}>`;
 
   try {
     const result = await resend.emails.send({
-      from: formattedFromField,
+      from,
       to: "webtekhy@gmail.com",
       subject,
       html,
@@ -145,6 +141,17 @@ export async function sendEmailWithRetry(
 
     const result = await sendEmail({ ...params, attemptNumber: attempt });
     if (result.success) return result;
+
+    if (
+      result.error?.toLowerCase().includes("from") ||
+      result.error?.toLowerCase().includes("invalid")
+    ) {
+      // Permanent config error — stop immediately, don't burn retries
+      console.error(
+        "[Email] Permanent configuration error — check RESEND_FROM_EMAIL in .env.local",
+      );
+      return result;
+    }
 
     if (attempt < maxAttempts) {
       console.warn(`[Email] Attempt ${attempt} failed, retrying...`);

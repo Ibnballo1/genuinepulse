@@ -7,6 +7,8 @@ import { feedback } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { getBusinessContext, withErrorHandling, apiSuccess } from "@/lib/api";
 
+export const runtime = "nodejs";
+
 export const POST = withErrorHandling(
   async (req: NextRequest, { params }: { params: { id: string } }) => {
     const { user, businessId } = await getBusinessContext(req);
@@ -15,7 +17,7 @@ export const POST = withErrorHandling(
     const existing = await db.query.feedback.findFirst({
       where: and(
         eq(feedback.id, params.id),
-        eq(feedback.businessId, businessId)
+        eq(feedback.businessId, businessId),
       ),
     });
 
@@ -35,5 +37,5 @@ export const POST = withErrorHandling(
       .returning();
 
     return apiSuccess(updated);
-  }
+  },
 );

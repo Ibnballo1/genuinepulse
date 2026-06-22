@@ -8,6 +8,8 @@ import { eq } from "drizzle-orm";
 import { requireSuperAdmin, withErrorHandling, apiSuccess } from "@/lib/api";
 import { updatePlanSchema } from "@/lib/validations";
 
+export const runtime = "nodejs";
+
 const PLAN_DEFAULTS = {
   starter: { monthlySmsLimit: 500, monthlyEmailLimit: 2_000 },
   pro: { monthlySmsLimit: 2_500, monthlyEmailLimit: 10_000 },

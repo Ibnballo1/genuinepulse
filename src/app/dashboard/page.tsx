@@ -211,7 +211,7 @@ export default async function DashboardPage() {
       value: totalSent.toLocaleString(),
       change: pctChange(totalSent, prevSent),
       color: "blue" as const,
-      icon: "✉️",
+      icon: "↗",
       iconBg: "bg-blue-100 text-blue-600",
     },
     {
@@ -219,7 +219,7 @@ export default async function DashboardPage() {
       value: totalReviews.toLocaleString(),
       change: pctChange(totalReviews, prevReviews2),
       color: "green" as const,
-      icon: "⭐",
+      icon: "★",
       iconBg: "bg-green-100 text-green-600",
     },
     {
@@ -236,7 +236,7 @@ export default async function DashboardPage() {
       value: avgRating > 0 ? avgRating.toFixed(1) : "—",
       change: null,
       color: "blue" as const,
-      icon: "📊",
+      icon: "☆",
       iconBg: "bg-sky-100 text-sky-600",
     },
   ];

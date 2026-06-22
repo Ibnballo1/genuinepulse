@@ -9,6 +9,8 @@ import { requireAuth, withErrorHandling, validateBody } from "@/lib/api";
 import { z } from "zod";
 import { addDays } from "date-fns";
 
+export const runtime = "nodejs";
+
 const onboardingSchema = z.object({
   name: z.string().min(2).max(255),
   industry: z.string().max(100).optional(),

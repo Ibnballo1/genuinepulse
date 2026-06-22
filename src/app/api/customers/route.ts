@@ -1,10 +1,14 @@
 // src/app/api/customers/route.ts
-// GET  /api/customers    — list business customers
-// POST /api/customers    — create single customer
+// ADDED: export const runtime = "nodejs" — ensures postgres driver works
+// GET  /api/customers — list customers (paginated, filtered)
+// POST /api/customers — create a single customer
 
+export const runtime = "nodejs";
+
+import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { customers } from "@/db/schema";
+import { customers, auditLogs } from "@/db/schema";
 import { eq, and, or, ilike, sql, desc, count } from "drizzle-orm";
 import {
   getBusinessContext,
@@ -15,20 +19,20 @@ import {
   apiSuccess,
 } from "@/lib/api";
 import { createCustomerSchema } from "@/lib/validations";
-import { auditLogs } from "@/db/schema";
+
+// ─── GET — list customers ─────────────────────────────────────────────────────
 
 export const GET = withErrorHandling(async (req: NextRequest) => {
-  const { user, businessId } = await getBusinessContext(req);
+  const { businessId } = await getBusinessContext(req);
   const { searchParams } = new URL(req.url);
   const { page, limit, offset } = getPaginationParams(searchParams);
 
   const search = searchParams.get("search");
-  const tag = searchParams.get("tag");
-  const hasReviewed = searchParams.get("hasReviewed");
   const optedOut = searchParams.get("optedOut");
+  const hasReviewed = searchParams.get("hasReviewed");
 
-  // Build dynamic WHERE conditions
-  const conditions = [eq(customers.businessId, businessId)];
+  // Build conditions
+  const conditions: any[] = [eq(customers.businessId, businessId)];
 
   if (search) {
     conditions.push(
@@ -41,7 +45,7 @@ export const GET = withErrorHandling(async (req: NextRequest) => {
     );
   }
 
-  if (optedOut !== null) {
+  if (optedOut !== null && optedOut !== "") {
     conditions.push(eq(customers.optedOut, optedOut === "true"));
   }
 
@@ -53,13 +57,13 @@ export const GET = withErrorHandling(async (req: NextRequest) => {
 
   const whereClause = and(...conditions);
 
-  // Total count
+  // Count total
   const [{ total }] = await db
     .select({ total: count() })
     .from(customers)
     .where(whereClause);
 
-  // Paginated results
+  // Fetch page
   const rows = await db
     .select()
     .from(customers)
@@ -71,6 +75,8 @@ export const GET = withErrorHandling(async (req: NextRequest) => {
   return paginatedResponse(rows, Number(total), page, limit);
 });
 
+// ─── POST — create customer ───────────────────────────────────────────────────
+
 export const POST = withErrorHandling(async (req: NextRequest) => {
   const { user, businessId } = await getBusinessContext(req);
   const body = await validateBody(req, createCustomerSchema);
@@ -78,11 +84,11 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
   const [created] = await db
     .insert(customers)
     .values({
-      id: crypto.randomUUID(),
+      id: randomUUID(),
       businessId,
       firstName: body.firstName,
       lastName: body.lastName,
-      email: body.email?.toLowerCase(),
+      email: body.email?.toLowerCase().trim(),
       phone: body.phone,
       notes: body.notes,
       tags: body.tags,
@@ -91,7 +97,7 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
 
   // Audit log
   await db.insert(auditLogs).values({
-    id: crypto.randomUUID(),
+    id: randomUUID(),
     userId: user.id,
     businessId,
     action: "create",

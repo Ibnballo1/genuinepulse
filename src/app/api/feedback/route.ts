@@ -13,6 +13,8 @@ import {
 } from "@/lib/api";
 import { feedbackQuerySchema } from "@/lib/validations";
 
+export const runtime = "nodejs";
+
 export const GET = withErrorHandling(async (req: NextRequest) => {
   const { businessId } = await getBusinessContext(req);
   const { searchParams } = new URL(req.url);
@@ -30,16 +32,22 @@ export const GET = withErrorHandling(async (req: NextRequest) => {
   });
 
   if (!query.success) {
-    return NextResponse.json({ error: "Invalid query params" }, { status: 422 });
+    return NextResponse.json(
+      { error: "Invalid query params" },
+      { status: 422 },
+    );
   }
 
   const q = query.data;
   const conditions: any[] = [eq(feedback.businessId, businessId)];
 
   if (q.type && q.type !== "all") conditions.push(eq(feedback.type, q.type));
-  if (q.minRating !== undefined) conditions.push(gte(feedback.rating, q.minRating));
-  if (q.maxRating !== undefined) conditions.push(lte(feedback.rating, q.maxRating));
-  if (q.isResolved !== undefined) conditions.push(eq(feedback.isResolved, q.isResolved));
+  if (q.minRating !== undefined)
+    conditions.push(gte(feedback.rating, q.minRating));
+  if (q.maxRating !== undefined)
+    conditions.push(lte(feedback.rating, q.maxRating));
+  if (q.isResolved !== undefined)
+    conditions.push(eq(feedback.isResolved, q.isResolved));
   if (q.startDate) conditions.push(gte(feedback.submittedAt, q.startDate));
   if (q.endDate) conditions.push(lte(feedback.submittedAt, q.endDate));
 

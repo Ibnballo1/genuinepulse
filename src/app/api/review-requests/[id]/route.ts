@@ -6,11 +6,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { reviewRequests } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
-import {
-  getBusinessContext,
-  withErrorHandling,
-  apiSuccess,
-} from "@/lib/api";
+import { getBusinessContext, withErrorHandling, apiSuccess } from "@/lib/api";
+
+export const runtime = "nodejs";
 
 export const GET = withErrorHandling(
   async (req: NextRequest, { params }: { params: { id: string } }) => {
@@ -19,7 +17,7 @@ export const GET = withErrorHandling(
     const request = await db.query.reviewRequests.findFirst({
       where: and(
         eq(reviewRequests.id, params.id),
-        eq(reviewRequests.businessId, businessId)
+        eq(reviewRequests.businessId, businessId),
       ),
       with: {
         customer: true,
@@ -35,7 +33,7 @@ export const GET = withErrorHandling(
     }
 
     return apiSuccess(request);
-  }
+  },
 );
 
 export const DELETE = withErrorHandling(
@@ -45,7 +43,7 @@ export const DELETE = withErrorHandling(
     const request = await db.query.reviewRequests.findFirst({
       where: and(
         eq(reviewRequests.id, params.id),
-        eq(reviewRequests.businessId, businessId)
+        eq(reviewRequests.businessId, businessId),
       ),
     });
 
@@ -57,14 +55,12 @@ export const DELETE = withErrorHandling(
     if (request.status !== "pending" || !request.scheduledAt) {
       return NextResponse.json(
         { error: "Only pending scheduled requests can be canceled" },
-        { status: 422 }
+        { status: 422 },
       );
     }
 
-    await db
-      .delete(reviewRequests)
-      .where(eq(reviewRequests.id, params.id));
+    await db.delete(reviewRequests).where(eq(reviewRequests.id, params.id));
 
     return NextResponse.json({ success: true });
-  }
+  },
 );

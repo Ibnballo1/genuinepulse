@@ -9,6 +9,8 @@ import { eq } from "drizzle-orm";
 import { requireSuperAdmin, withErrorHandling, apiSuccess } from "@/lib/api";
 import { suspendUserSchema } from "@/lib/validations";
 
+export const runtime = "nodejs";
+
 export const POST = withErrorHandling(
   async (req: NextRequest, { params }: { params: { id: string } }) => {
     const admin = await requireSuperAdmin(req);

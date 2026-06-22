@@ -8,6 +8,8 @@ import { eq, and, gte, sql, count, avg, desc } from "drizzle-orm";
 import { getBusinessContext, withErrorHandling } from "@/lib/api";
 import { subDays } from "date-fns";
 
+export const runtime = "nodejs";
+
 export const GET = withErrorHandling(
   async (req: NextRequest, { params }: { params: { id: string } }) => {
     const { user, businessId } = await getBusinessContext(req);

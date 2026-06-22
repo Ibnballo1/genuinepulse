@@ -15,6 +15,8 @@ import {
 } from "@/lib/api";
 import { updateCustomerSchema } from "@/lib/validations";
 
+export const runtime = "nodejs";
+
 export const GET = withErrorHandling(
   async (req: NextRequest, { params }: { params: { id: string } }) => {
     const { businessId } = await getBusinessContext(req);

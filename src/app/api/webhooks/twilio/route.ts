@@ -8,6 +8,8 @@ import { eq } from "drizzle-orm";
 import { isOptOutMessage } from "@/lib/sms";
 import twilio from "twilio";
 
+export const runtime = "nodejs";
+
 const MessagingResponse = twilio.twiml.MessagingResponse;
 
 export async function POST(req: NextRequest) {

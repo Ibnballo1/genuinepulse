@@ -4,21 +4,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import {
-  reviewRequests, customers, businesses,
-  subscriptions, messageTemplates,
+  reviewRequests,
+  customers,
+  businesses,
+  subscriptions,
+  messageTemplates,
 } from "@/db/schema";
 import { eq, and, inArray, sql } from "drizzle-orm";
-import {
-  getBusinessContext, withErrorHandling, validateBody,
-} from "@/lib/api";
+import { getBusinessContext, withErrorHandling, validateBody } from "@/lib/api";
 import { bulkSendRequestSchema } from "@/lib/validations";
 import { sendSmsWithRetry, personalizeSmsTemplate } from "@/lib/sms";
-import { sendEmailWithRetry, buildReviewRequestEmail, personalizeEmailTemplate } from "@/lib/email";
+import {
+  sendEmailWithRetry,
+  buildReviewRequestEmail,
+  personalizeEmailTemplate,
+} from "@/lib/email";
 import { generateReviewToken, buildReviewLink } from "@/lib/funnel";
 import {
-  smsLimiter, emailLimiter, getClientIp, checkRateLimit, rateLimitResponse,
+  smsLimiter,
+  emailLimiter,
+  getClientIp,
+  checkRateLimit,
+  rateLimitResponse,
 } from "@/lib/rate-limit";
 import { addDays } from "date-fns";
+
+export const runtime = "nodejs";
 
 export const POST = withErrorHandling(async (req: NextRequest) => {
   const { user, businessId } = await getBusinessContext(req);
@@ -27,13 +38,18 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
 
   // Rate limit check (use same per-business limiter)
   const limiter = body.channel === "sms" ? smsLimiter : emailLimiter;
-  const { success, reset } = await checkRateLimit(limiter, `${businessId}:${ip}`);
+  const { success, reset } = await checkRateLimit(
+    limiter,
+    `${businessId}:${ip}`,
+  );
   if (!success) return rateLimitResponse(reset);
 
   // Load business + subscription
   const [business, subscription] = await Promise.all([
     db.query.businesses.findFirst({ where: eq(businesses.id, businessId) }),
-    db.query.subscriptions.findFirst({ where: eq(subscriptions.businessId, businessId) }),
+    db.query.subscriptions.findFirst({
+      where: eq(subscriptions.businessId, businessId),
+    }),
   ]);
 
   if (!business) {
@@ -45,25 +61,31 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
     where: and(
       inArray(customers.id, body.customerIds),
       eq(customers.businessId, businessId),
-      eq(customers.optedOut, false)
+      eq(customers.optedOut, false),
     ),
   });
 
   if (customerList.length === 0) {
-    return NextResponse.json({ error: "No eligible customers found" }, { status: 422 });
+    return NextResponse.json(
+      { error: "No eligible customers found" },
+      { status: 422 },
+    );
   }
 
   // Check usage limits
-  const remaining = body.channel === "sms"
-    ? (subscription?.monthlySmsLimit ?? 0) - (subscription?.smsSentThisPeriod ?? 0)
-    : (subscription?.monthlyEmailLimit ?? 99999) - (subscription?.emailSentThisPeriod ?? 0);
+  const remaining =
+    body.channel === "sms"
+      ? (subscription?.monthlySmsLimit ?? 0) -
+        (subscription?.smsSentThisPeriod ?? 0)
+      : (subscription?.monthlyEmailLimit ?? 99999) -
+        (subscription?.emailSentThisPeriod ?? 0);
 
   const eligible = customerList.slice(0, Math.max(0, remaining));
 
   if (eligible.length === 0) {
     return NextResponse.json(
       { error: `Monthly ${body.channel.toUpperCase()} limit reached` },
-      { status: 429 }
+      { status: 429 },
     );
   }
 
@@ -80,7 +102,10 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
   // Send to each customer
   for (const customer of eligible) {
     const sendTo = body.channel === "sms" ? customer.phone : customer.email;
-    if (!sendTo) { results.skipped++; continue; }
+    if (!sendTo) {
+      results.skipped++;
+      continue;
+    }
 
     const token = generateReviewToken();
     const reviewLink = buildReviewLink(token);
@@ -90,6 +115,7 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
     const [request] = await db
       .insert(reviewRequests)
       .values({
+        id: crypto.randomUUID(),
         businessId,
         customerId: customer.id,
         sentById: user.id,
@@ -115,14 +141,20 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
       const defaultSms = `Hi {{first_name}}! {{business_name}} thanks you for your visit. Rate us here: {{review_link}} (Reply STOP to opt out)`;
       sendResult = await sendSmsWithRetry({
         to: sendTo,
-        body: personalizeSmsTemplate(template?.body ?? defaultSms, templateVars),
+        body: personalizeSmsTemplate(
+          template?.body ?? defaultSms,
+          templateVars,
+        ),
         businessId,
         reviewRequestId: request.id,
       });
     } else {
       const { subject, html } = template
         ? {
-            subject: personalizeEmailTemplate(template.subject ?? "", templateVars),
+            subject: personalizeEmailTemplate(
+              template.subject ?? "",
+              templateVars,
+            ),
             html: personalizeEmailTemplate(template.body, templateVars),
           }
         : buildReviewRequestEmail({
@@ -131,7 +163,11 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
             reviewLink,
           });
       sendResult = await sendEmailWithRetry({
-        to: sendTo, subject, html, businessId, reviewRequestId: request.id,
+        to: sendTo,
+        subject,
+        html,
+        businessId,
+        reviewRequestId: request.id,
       });
     }
 
@@ -159,7 +195,9 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
       .set(
         body.channel === "sms"
           ? { smsSentThisPeriod: sql`sms_sent_this_period + ${results.sent}` }
-          : { emailSentThisPeriod: sql`email_sent_this_period + ${results.sent}` }
+          : {
+              emailSentThisPeriod: sql`email_sent_this_period + ${results.sent}`,
+            },
       )
       .where(eq(subscriptions.businessId, businessId));
   }

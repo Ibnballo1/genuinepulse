@@ -1,7 +1,4 @@
 // src/app/api/review-requests/route.ts
-// POST /api/review-requests — send a review request via SMS or email
-// GET  /api/review-requests — list requests for the business
-
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import {
@@ -20,10 +17,7 @@ import {
   getPaginationParams,
   apiSuccess,
 } from "@/lib/api";
-import {
-  sendReviewRequestSchema,
-  bulkSendRequestSchema,
-} from "@/lib/validations";
+import { sendReviewRequestSchema } from "@/lib/validations";
 import { sendSmsWithRetry, personalizeSmsTemplate } from "@/lib/sms";
 import {
   sendEmailWithRetry,
@@ -38,10 +32,11 @@ import {
   checkRateLimit,
   rateLimitResponse,
 } from "@/lib/rate-limit";
-// import { nanoid } from "nanoid";
 import { addDays } from "date-fns";
 
-// ─── GET — list requests ──────────────────────────────────────────────────────
+export const runtime = "nodejs";
+
+// ─── GET ──────────────────────────────────────────────────────────────────────
 
 export const GET = withErrorHandling(async (req: NextRequest) => {
   const { businessId } = await getBusinessContext(req);
@@ -54,7 +49,6 @@ export const GET = withErrorHandling(async (req: NextRequest) => {
   const conditions: any[] = [eq(reviewRequests.businessId, businessId)];
   if (status) conditions.push(eq(reviewRequests.status, status as any));
   if (channel) conditions.push(eq(reviewRequests.channel, channel as any));
-
   const where = and(...conditions);
 
   const [{ total }] = await db
@@ -73,22 +67,22 @@ export const GET = withErrorHandling(async (req: NextRequest) => {
   return paginatedResponse(rows, Number(total), page, limit);
 });
 
-// ─── POST — send single review request ───────────────────────────────────────
+// ─── POST ─────────────────────────────────────────────────────────────────────
 
 export const POST = withErrorHandling(async (req: NextRequest) => {
   const { user, businessId } = await getBusinessContext(req);
   const body = await validateBody(req, sendReviewRequestSchema);
   const ip = getClientIp(req);
 
-  // ─── Rate limiting ─────────────────────────────────────────────────────
+  // Rate limit
   const limiter = body.channel === "sms" ? smsLimiter : emailLimiter;
-  const { success, remaining, reset } = await checkRateLimit(
+  const { success, reset } = await checkRateLimit(
     limiter,
     `${businessId}:${ip}`,
   );
   if (!success) return rateLimitResponse(reset);
 
-  // ─── Load business + customer ──────────────────────────────────────────
+  // Load business, customer, subscription
   const [business, customer, subscription] = await Promise.all([
     db.query.businesses.findFirst({ where: eq(businesses.id, businessId) }),
     db.query.customers.findFirst({
@@ -107,7 +101,6 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
   if (!customer)
     return NextResponse.json({ error: "Customer not found" }, { status: 404 });
 
-  // ─── Check customer opt-out ────────────────────────────────────────────
   if (customer.optedOut) {
     return NextResponse.json(
       { error: "Customer has opted out of messages" },
@@ -115,7 +108,7 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
     );
   }
 
-  // ─── Check usage limits ────────────────────────────────────────────────
+  // Usage limits
   if (subscription) {
     if (
       body.channel === "sms" &&
@@ -137,9 +130,8 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
     }
   }
 
-  // ─── Check target contact info ─────────────────────────────────────────
+  // Contact info
   const sendTo = body.channel === "sms" ? customer.phone : customer.email;
-
   if (!sendTo) {
     return NextResponse.json(
       {
@@ -149,12 +141,12 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
     );
   }
 
-  // ─── Generate review token and link ───────────────────────────────────
+  // Token + link
   const token = generateReviewToken();
   const reviewLink = buildReviewLink(token);
   const expiresAt = addDays(new Date(), 7);
 
-  // ─── Create review request record ─────────────────────────────────────
+  // Insert request record
   const [request] = await db
     .insert(reviewRequests)
     .values({
@@ -165,14 +157,14 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
       channel: body.channel,
       status: "pending",
       token,
-      sentTo: "webtekhy@gmail.com",
+      sentTo: sendTo,
       templateId: body.templateId,
       scheduledAt: body.scheduledAt,
       expiresAt,
     })
     .returning();
 
-  // ─── Load template ─────────────────────────────────────────────────────
+  // Load template
   const template = body.templateId
     ? await db.query.messageTemplates.findFirst({
         where: and(
@@ -188,24 +180,19 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
         ),
       });
 
-  const templateVars = {
+  const vars = {
     first_name: customer.firstName,
     last_name: customer.lastName ?? "",
     business_name: business.name,
     review_link: reviewLink,
   };
 
-  // ─── Send the message ─────────────────────────────────────────────────
+  // Send
   if (body.channel === "sms") {
-    const defaultSmsBody = `Hi {{first_name}}! {{business_name}} would love your feedback. Rate your experience here: {{review_link}} (Reply STOP to opt out)`;
-    const smsBody = personalizeSmsTemplate(
-      template?.body ?? defaultSmsBody,
-      templateVars,
-    );
-
+    const defaultBody = `Hi {{first_name}}! {{business_name}} would love your feedback. Rate us: {{review_link}} (Reply STOP to opt out)`;
     await sendSmsWithRetry({
       to: sendTo,
-      body: smsBody,
+      body: personalizeSmsTemplate(template?.body ?? defaultBody, vars),
       businessId,
       reviewRequestId: request.id,
       fromNumber: business.smsFromNumber ?? undefined,
@@ -213,11 +200,8 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
   } else {
     const { subject, html } = template
       ? {
-          subject: personalizeEmailTemplate(
-            template.subject ?? "",
-            templateVars,
-          ),
-          html: personalizeEmailTemplate(template.body, templateVars),
+          subject: personalizeEmailTemplate(template.subject ?? "", vars),
+          html: personalizeEmailTemplate(template.body, vars),
         }
       : buildReviewRequestEmail({
           customerName: customer.firstName,
@@ -227,19 +211,17 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
         });
 
     await sendEmailWithRetry({
-      // to: sendTo,
-      to: "webtekhy@gmail.com",
+      to: sendTo,
       subject,
       html,
       businessId,
       reviewRequestId: request.id,
-      // fromEmail: business.emailFromAddress ?? undefined,
-      fromEmail: process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev",
+      fromEmail: business.emailFromAddress ?? undefined,
       fromName: business.emailFromName ?? undefined,
     });
   }
 
-  // ─── Increment usage counter ───────────────────────────────────────────
+  // Increment usage
   if (subscription) {
     await db
       .update(subscriptions)
@@ -251,7 +233,7 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
       .where(eq(subscriptions.businessId, businessId));
   }
 
-  // ─── Update customer last request timestamp ────────────────────────────
+  // Update customer stats
   await db
     .update(customers)
     .set({

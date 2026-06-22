@@ -7,9 +7,14 @@ import { db } from "@/db";
 import { businesses } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import {
-  getBusinessContext, withErrorHandling, validateBody, apiSuccess,
+  getBusinessContext,
+  withErrorHandling,
+  validateBody,
+  apiSuccess,
 } from "@/lib/api";
 import { updateBusinessSchema } from "@/lib/validations";
+
+export const runtime = "nodejs";
 
 export const GET = withErrorHandling(async (req: NextRequest) => {
   const { businessId } = await getBusinessContext(req);

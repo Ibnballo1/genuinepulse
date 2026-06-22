@@ -7,9 +7,14 @@ import { db } from "@/db";
 import { messageTemplates } from "@/db/schema";
 import { eq, and, or, isNull } from "drizzle-orm";
 import {
-  getBusinessContext, withErrorHandling, validateBody, apiSuccess,
+  getBusinessContext,
+  withErrorHandling,
+  validateBody,
+  apiSuccess,
 } from "@/lib/api";
 import { createTemplateSchema } from "@/lib/validations";
+
+export const runtime = "nodejs";
 
 export const GET = withErrorHandling(async (req: NextRequest) => {
   const { businessId } = await getBusinessContext(req);
@@ -19,7 +24,7 @@ export const GET = withErrorHandling(async (req: NextRequest) => {
   const conditions: any[] = [
     or(
       eq(messageTemplates.businessId, businessId),
-      isNull(messageTemplates.businessId) // global defaults
+      isNull(messageTemplates.businessId), // global defaults
     )!,
     eq(messageTemplates.isActive, true),
   ];
@@ -49,14 +54,15 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
         and(
           eq(messageTemplates.businessId, businessId),
           eq(messageTemplates.channel, body.channel),
-          eq(messageTemplates.isDefault, true)
-        )
+          eq(messageTemplates.isDefault, true),
+        ),
       );
   }
 
   const [created] = await db
     .insert(messageTemplates)
     .values({
+      id: crypto.randomUUID(),
       businessId,
       name: body.name,
       channel: body.channel,

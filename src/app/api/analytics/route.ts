@@ -9,6 +9,8 @@ import { feedback, reviewRequests } from "@/db/schema";
 import { eq, and, gte, sql, count, avg, desc } from "drizzle-orm";
 import { subDays } from "date-fns";
 
+export const runtime = "nodejs";
+
 export const GET = withErrorHandling(async (req: NextRequest) => {
   const { businessId } = await getBusinessContext(req);
   const { searchParams } = new URL(req.url);
