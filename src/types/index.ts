@@ -1,6 +1,8 @@
 // src/types/index.ts
 // Shared TypeScript types used across the app
 
+import { MessageLog } from "@/db";
+
 // ─── Re-export DB types ───────────────────────────────────────────────────────
 
 export type {
@@ -109,9 +111,21 @@ export interface FunnelResult {
 
 export type UserRole = "super_admin" | "business_owner" | "staff";
 export type Plan = "starter" | "pro" | "enterprise";
-export type SubscriptionStatus = "trialing" | "active" | "past_due" | "canceled" | "paused";
+export type SubscriptionStatus =
+  | "trialing"
+  | "active"
+  | "past_due"
+  | "canceled"
+  | "paused";
 export type RequestChannel = "sms" | "email";
-export type RequestStatus = "pending" | "sent" | "delivered" | "opened" | "clicked" | "failed" | "bounced";
+export type RequestStatus =
+  | "pending"
+  | "sent"
+  | "delivered"
+  | "opened"
+  | "clicked"
+  | "failed"
+  | "bounced";
 export type FeedbackType = "public_review" | "private_feedback";
 
 // ─── Session user (from BetterAuth) ──────────────────────────────────────────
@@ -138,7 +152,11 @@ export interface AdminOverview {
     totalReviews30d: number;
     mrr: number;
   };
-  planBreakdown: Array<{ plan: Plan; status: SubscriptionStatus; count: number }>;
+  planBreakdown: Array<{
+    plan: Plan;
+    status: SubscriptionStatus;
+    count: number;
+  }>;
   planRevenue: Record<string, number>;
   recentFailedMessages: MessageLog[];
   topBusinesses: Array<{
