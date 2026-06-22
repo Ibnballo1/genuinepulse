@@ -43,12 +43,21 @@ export async function sendEmail(params: SendEmailParams): Promise<EmailResult> {
     attemptNumber = 1,
   } = params;
 
-  const from = `${fromName} <${fromEmail}>`;
+  // const from = `${fromName} <${fromEmail}>`;
+  // 🛠️ Ensure the format matches: "Name <email@domain.com>" or "email@domain.com"
+  const computedFromName = fromName?.trim() || "GenuinePulse Feedback";
+
+  // Clean fallback if the custom business domain profile email isn't set up yet
+  const computedFromAddress = fromEmail?.includes("@")
+    ? fromEmail.trim()
+    : process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev"; // Resend testing sandbox fallback
+
+  const formattedFromField = `${computedFromName} <${computedFromAddress}>`;
 
   try {
     const result = await resend.emails.send({
-      from,
-      to,
+      from: formattedFromField,
+      to: "webtekhy@gmail.com",
       subject,
       html,
       text: text ?? html.replace(/<[^>]+>/g, ""), // strip tags for plain-text fallback

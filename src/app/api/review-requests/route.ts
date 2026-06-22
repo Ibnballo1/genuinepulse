@@ -38,7 +38,7 @@ import {
   checkRateLimit,
   rateLimitResponse,
 } from "@/lib/rate-limit";
-import { nanoid } from "nanoid";
+// import { nanoid } from "nanoid";
 import { addDays } from "date-fns";
 
 // ─── GET — list requests ──────────────────────────────────────────────────────
@@ -84,7 +84,7 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
   const limiter = body.channel === "sms" ? smsLimiter : emailLimiter;
   const { success, remaining, reset } = await checkRateLimit(
     limiter,
-    `${businessId}:${ip}`
+    `${businessId}:${ip}`,
   );
   if (!success) return rateLimitResponse(reset);
 
@@ -94,7 +94,7 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
     db.query.customers.findFirst({
       where: and(
         eq(customers.id, body.customerId),
-        eq(customers.businessId, businessId)
+        eq(customers.businessId, businessId),
       ),
     }),
     db.query.subscriptions.findFirst({
@@ -102,14 +102,16 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
     }),
   ]);
 
-  if (!business) return NextResponse.json({ error: "Business not found" }, { status: 404 });
-  if (!customer) return NextResponse.json({ error: "Customer not found" }, { status: 404 });
+  if (!business)
+    return NextResponse.json({ error: "Business not found" }, { status: 404 });
+  if (!customer)
+    return NextResponse.json({ error: "Customer not found" }, { status: 404 });
 
   // ─── Check customer opt-out ────────────────────────────────────────────
   if (customer.optedOut) {
     return NextResponse.json(
       { error: "Customer has opted out of messages" },
-      { status: 422 }
+      { status: 422 },
     );
   }
 
@@ -121,7 +123,7 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
     ) {
       return NextResponse.json(
         { error: "Monthly SMS limit reached. Please upgrade your plan." },
-        { status: 429 }
+        { status: 429 },
       );
     }
     if (
@@ -130,21 +132,20 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
     ) {
       return NextResponse.json(
         { error: "Monthly email limit reached. Please upgrade your plan." },
-        { status: 429 }
+        { status: 429 },
       );
     }
   }
 
   // ─── Check target contact info ─────────────────────────────────────────
-  const sendTo =
-    body.channel === "sms" ? customer.phone : customer.email;
+  const sendTo = body.channel === "sms" ? customer.phone : customer.email;
 
   if (!sendTo) {
     return NextResponse.json(
       {
         error: `Customer has no ${body.channel === "sms" ? "phone number" : "email address"}`,
       },
-      { status: 422 }
+      { status: 422 },
     );
   }
 
@@ -157,13 +158,14 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
   const [request] = await db
     .insert(reviewRequests)
     .values({
+      id: crypto.randomUUID(),
       businessId,
       customerId: customer.id,
       sentById: user.id,
       channel: body.channel,
       status: "pending",
       token,
-      sentTo: sendTo,
+      sentTo: "webtekhy@gmail.com",
       templateId: body.templateId,
       scheduledAt: body.scheduledAt,
       expiresAt,
@@ -175,14 +177,14 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
     ? await db.query.messageTemplates.findFirst({
         where: and(
           eq(messageTemplates.id, body.templateId),
-          eq(messageTemplates.channel, body.channel)
+          eq(messageTemplates.channel, body.channel),
         ),
       })
     : await db.query.messageTemplates.findFirst({
         where: and(
           eq(messageTemplates.businessId, businessId),
           eq(messageTemplates.channel, body.channel),
-          eq(messageTemplates.isDefault, true)
+          eq(messageTemplates.isDefault, true),
         ),
       });
 
@@ -198,7 +200,7 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
     const defaultSmsBody = `Hi {{first_name}}! {{business_name}} would love your feedback. Rate your experience here: {{review_link}} (Reply STOP to opt out)`;
     const smsBody = personalizeSmsTemplate(
       template?.body ?? defaultSmsBody,
-      templateVars
+      templateVars,
     );
 
     await sendSmsWithRetry({
@@ -211,7 +213,10 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
   } else {
     const { subject, html } = template
       ? {
-          subject: personalizeEmailTemplate(template.subject ?? "", templateVars),
+          subject: personalizeEmailTemplate(
+            template.subject ?? "",
+            templateVars,
+          ),
           html: personalizeEmailTemplate(template.body, templateVars),
         }
       : buildReviewRequestEmail({
@@ -222,12 +227,14 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
         });
 
     await sendEmailWithRetry({
-      to: sendTo,
+      // to: sendTo,
+      to: "webtekhy@gmail.com",
       subject,
       html,
       businessId,
       reviewRequestId: request.id,
-      fromEmail: business.emailFromAddress ?? undefined,
+      // fromEmail: business.emailFromAddress ?? undefined,
+      fromEmail: process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev",
       fromName: business.emailFromName ?? undefined,
     });
   }
@@ -239,7 +246,7 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
       .set(
         body.channel === "sms"
           ? { smsSentThisPeriod: sql`sms_sent_this_period + 1` }
-          : { emailSentThisPeriod: sql`email_sent_this_period + 1` }
+          : { emailSentThisPeriod: sql`email_sent_this_period + 1` },
       )
       .where(eq(subscriptions.businessId, businessId));
   }
@@ -253,8 +260,5 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
     })
     .where(eq(customers.id, customer.id));
 
-  return apiSuccess(
-    { requestId: request.id, token, reviewLink },
-    201
-  );
+  return apiSuccess({ requestId: request.id, token, reviewLink }, 201);
 });
