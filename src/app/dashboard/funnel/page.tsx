@@ -5,9 +5,14 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import {
-  GitBranch, Star, ExternalLink, CheckCircle,
-  ArrowDown, Google, ChevronRight,
+  GitBranch,
+  Star,
+  ExternalLink,
+  CheckCircle,
+  ArrowDown,
+  ChevronRight,
 } from "lucide-react";
+import { FaGoogle } from "react-icons/fa";
 import { Button, Badge, Card, Input, Select } from "@/components/ui";
 import { cn } from "@/lib/utils";
 
@@ -38,7 +43,7 @@ function FunnelPreview({ threshold }: { threshold: number }) {
         <div className="px-6 py-6 text-center">
           <p className="text-sm text-gray-500 mb-4">Tap to rate your visit</p>
           <div className="flex justify-center gap-2 mb-4">
-            {[1,2,3,4,5].map((s) => (
+            {[1, 2, 3, 4, 5].map((s) => (
               <button
                 key={s}
                 onMouseEnter={() => setHovered(s)}
@@ -50,7 +55,9 @@ function FunnelPreview({ threshold }: { threshold: number }) {
                   size={32}
                   className={cn(
                     "transition-colors",
-                    (display ?? 0) >= s ? "fill-amber-400 text-amber-400" : "text-gray-200 fill-gray-100"
+                    (display ?? 0) >= s
+                      ? "fill-amber-400 text-amber-400"
+                      : "text-gray-200 fill-gray-100",
                   )}
                 />
               </button>
@@ -60,15 +67,26 @@ function FunnelPreview({ threshold }: { threshold: number }) {
           {/* Result message */}
           {isPublic && (
             <div className="animate-in fade-in-0 slide-in-from-bottom-2 bg-emerald-50 rounded-xl p-4 text-center border border-emerald-200">
-              <CheckCircle size={20} className="text-emerald-600 mx-auto mb-1.5" />
-              <p className="text-sm font-semibold text-emerald-700">Awesome! Redirecting to Google…</p>
-              <p className="text-xs text-emerald-600 mt-1">Your review helps others find us ★</p>
+              <CheckCircle
+                size={20}
+                className="text-emerald-600 mx-auto mb-1.5"
+              />
+              <p className="text-sm font-semibold text-emerald-700">
+                Awesome! Redirecting to Google…
+              </p>
+              <p className="text-xs text-emerald-600 mt-1">
+                Your review helps others find us ★
+              </p>
             </div>
           )}
           {isPrivate && (
             <div className="animate-in fade-in-0 slide-in-from-bottom-2 bg-amber-50 rounded-xl p-4 text-center border border-amber-200">
-              <p className="text-sm font-semibold text-amber-700">We're sorry to hear that.</p>
-              <p className="text-xs text-amber-600 mt-1">Please tell us what went wrong so we can improve.</p>
+              <p className="text-sm font-semibold text-amber-700">
+                We're sorry to hear that.
+              </p>
+              <p className="text-xs text-amber-600 mt-1">
+                Please tell us what went wrong so we can improve.
+              </p>
               <textarea
                 className="w-full mt-3 p-2 text-xs border border-amber-200 rounded-lg resize-none h-16 focus:outline-none bg-white"
                 placeholder="Share your experience..."
@@ -79,7 +97,9 @@ function FunnelPreview({ threshold }: { threshold: number }) {
             </div>
           )}
           {selectedRating === null && (
-            <p className="text-xs text-gray-400">← Click a star to preview the funnel</p>
+            <p className="text-xs text-gray-400">
+              ← Click a star to preview the funnel
+            </p>
           )}
         </div>
       </div>
@@ -91,8 +111,18 @@ function FunnelPreview({ threshold }: { threshold: number }) {
 
 function FunnelDiagram({ threshold }: { threshold: number }) {
   const steps = [
-    { label: "Customer receives link",  width: "100%", bg: "bg-blue-600",   text: "1,284 sent" },
-    { label: "Opens link & rates",       width: "78%",  bg: "bg-blue-500",   text: "~912 opened" },
+    {
+      label: "Customer receives link",
+      width: "100%",
+      bg: "bg-blue-600",
+      text: "1,284 sent",
+    },
+    {
+      label: "Opens link & rates",
+      width: "78%",
+      bg: "bg-blue-500",
+      text: "~912 opened",
+    },
   ];
 
   return (
@@ -100,7 +130,10 @@ function FunnelDiagram({ threshold }: { threshold: number }) {
       {steps.map((s, i) => (
         <div key={i} className="flex flex-col items-center">
           <div
-            className={cn("rounded-lg flex items-center justify-between px-4 py-3 text-white text-sm font-medium transition-all", s.bg)}
+            className={cn(
+              "rounded-lg flex items-center justify-between px-4 py-3 text-white text-sm font-medium transition-all",
+              s.bg,
+            )}
             style={{ width: s.width }}
           >
             <span>{s.label}</span>
@@ -186,7 +219,8 @@ export default function FunnelPage() {
       <div>
         <h2 className="text-lg font-semibold text-gray-900">Review Funnel</h2>
         <p className="text-sm text-gray-400">
-          Configure your smart review redirect. Happy customers go public; unhappy ones stay private.
+          Configure your smart review redirect. Happy customers go public;
+          unhappy ones stay private.
         </p>
       </div>
 
@@ -195,10 +229,14 @@ export default function FunnelPage() {
         <div className="space-y-4">
           {/* Threshold */}
           <Card>
-            <h3 className="text-sm font-semibold text-gray-800 mb-4">Redirect Threshold</h3>
+            <h3 className="text-sm font-semibold text-gray-800 mb-4">
+              Redirect Threshold
+            </h3>
             <p className="text-xs text-gray-500 mb-4 leading-relaxed">
-              Customers who rate <strong>{threshold} stars or above</strong> will be sent to your public review platform.
-              Customers who rate <strong>below {threshold} stars</strong> will see the private feedback form instead.
+              Customers who rate <strong>{threshold} stars or above</strong>{" "}
+              will be sent to your public review platform. Customers who rate{" "}
+              <strong>below {threshold} stars</strong> will see the private
+              feedback form instead.
             </p>
             <div className="flex gap-2 mb-2">
               {[3, 4, 5].map((v) => (
@@ -209,7 +247,7 @@ export default function FunnelPage() {
                     "flex-1 py-2.5 rounded-lg text-sm font-medium border transition-all",
                     threshold === v
                       ? "bg-blue-600 text-white border-blue-600"
-                      : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
+                      : "bg-white text-gray-600 border-gray-200 hover:border-gray-300",
                   )}
                 >
                   ≥ {v} stars → public
@@ -217,13 +255,16 @@ export default function FunnelPage() {
               ))}
             </div>
             <p className="text-xs text-gray-400">
-              Recommended: 4 stars — captures most public reviews while filtering dissatisfied customers.
+              Recommended: 4 stars — captures most public reviews while
+              filtering dissatisfied customers.
             </p>
           </Card>
 
           {/* Platform URLs */}
           <Card>
-            <h3 className="text-sm font-semibold text-gray-800 mb-4">Review Platforms</h3>
+            <h3 className="text-sm font-semibold text-gray-800 mb-4">
+              Review Platforms
+            </h3>
             <div className="space-y-3">
               <div>
                 <Input
@@ -250,17 +291,25 @@ export default function FunnelPage() {
               />
             </div>
             <p className="text-xs text-gray-400 mt-3">
-              Priority: Google → Yelp → Facebook. First connected platform is used.
+              Priority: Google → Yelp → Facebook. First connected platform is
+              used.
             </p>
           </Card>
 
           {/* Funnel diagram */}
           <Card>
-            <h3 className="text-sm font-semibold text-gray-800 mb-4">Current Funnel Flow</h3>
+            <h3 className="text-sm font-semibold text-gray-800 mb-4">
+              Current Funnel Flow
+            </h3>
             <FunnelDiagram threshold={threshold} />
           </Card>
 
-          <Button className="w-full" size="lg" onClick={handleSave} loading={saving}>
+          <Button
+            className="w-full"
+            size="lg"
+            onClick={handleSave}
+            loading={saving}
+          >
             Save Funnel Settings
           </Button>
         </div>
@@ -269,7 +318,9 @@ export default function FunnelPage() {
         <div>
           <Card>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-gray-800">Customer-Facing Preview</h3>
+              <h3 className="text-sm font-semibold text-gray-800">
+                Customer-Facing Preview
+              </h3>
               <Badge variant="blue">Live demo</Badge>
             </div>
             <FunnelPreview threshold={threshold} />
